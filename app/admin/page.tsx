@@ -76,6 +76,10 @@ export default function AdminPage() {
   }, [])
 
   const fetchMovies = async () => {
+    if (!supabase) {
+      showAlert("error", "Supabase keys missing – movies can’t be loaded.")
+      return
+    }
     const { data, error } = await supabase.from("movies").select("*")
     if (error) {
       console.error("Error fetching movies:", error)
@@ -111,6 +115,8 @@ export default function AdminPage() {
   }
 
   const handleAddMovie = async () => {
+    if (!supabase) return
+
     if (!newMovie.title || !newMovie.thumbnail || !newMovie.url) {
       showAlert("error", "Please fill all required fields!")
       return
@@ -157,6 +163,7 @@ export default function AdminPage() {
   }
 
   const handleUpdateMovie = async () => {
+    if (!supabase) return
     if (!editingMovie) return
 
     const { data, error } = await supabase.from("movies").update(editingMovie).eq("id", editingMovie.id).select()
@@ -172,6 +179,7 @@ export default function AdminPage() {
   }
 
   const handleDeleteMovie = async (id: string) => {
+    if (!supabase) return
     const { error } = await supabase.from("movies").delete().eq("id", id)
 
     if (error) {
@@ -184,6 +192,7 @@ export default function AdminPage() {
   }
 
   const toggleFeatured = async (id: string) => {
+    if (!supabase) return
     const movieToUpdate = movies.find((movie) => movie.id === id)
     if (!movieToUpdate) return
 
@@ -203,6 +212,7 @@ export default function AdminPage() {
   }
 
   const toggleTrending = async (id: string) => {
+    if (!supabase) return
     const movieToUpdate = movies.find((movie) => movie.id === id)
     if (!movieToUpdate) return
 
