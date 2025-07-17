@@ -23,6 +23,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
+import { supabase } from "@/lib/supabaseClient" // Supabase client import करें
 
 interface Movie {
   id: string
@@ -58,198 +59,17 @@ export default function HomePage() {
   const [selectedQuality, setSelectedQuality] = useState("all")
   const [filteredMovies, setFilteredMovies] = useState<Movie[]>([])
 
-  // Sample movies data with more details
   useEffect(() => {
-    const sampleMovies: Movie[] = [
-      {
-        id: "1",
-        title: "Avengers: Endgame",
-        thumbnail: "/placeholder.svg?height=600&width=400",
-        url: "https://example.com/movie1",
-        genre: "Action, Sci-Fi, Adventure",
-        year: "2019",
-        rating: "8.4",
-        duration: "181 min",
-        quality: "4K UHD",
-        description:
-          "After the devastating events of Avengers: Infinity War, the universe is in ruins. With the help of remaining allies, the Avengers assemble once more to reverse Thanos' actions and restore balance to the universe.",
-        views: "2.5M",
-        cast: "Robert Downey Jr., Chris Evans, Mark Ruffalo, Chris Hemsworth",
-        director: "Anthony Russo, Joe Russo",
-        trailer: "https://youtube.com/watch?v=trailer1",
-        language: "English, Hindi",
-        size: "2.1 GB",
-        isFeatured: true,
-        isTrending: true,
-        category: "Hollywood",
-      },
-      {
-        id: "2",
-        title: "Spider-Man: No Way Home",
-        thumbnail: "/placeholder.svg?height=600&width=400",
-        url: "https://example.com/movie2",
-        genre: "Action, Adventure, Fantasy",
-        year: "2021",
-        rating: "8.2",
-        duration: "148 min",
-        quality: "4K UHD",
-        description:
-          "Spider-Man's identity is revealed, bringing his superhero responsibilities into conflict with his normal life and putting those he cares about most at risk.",
-        views: "1.8M",
-        cast: "Tom Holland, Zendaya, Benedict Cumberbatch",
-        director: "Jon Watts",
-        trailer: "https://youtube.com/watch?v=trailer2",
-        language: "English, Hindi",
-        size: "1.8 GB",
-        isFeatured: true,
-        isTrending: true,
-        category: "Hollywood",
-      },
-      {
-        id: "3",
-        title: "RRR",
-        thumbnail: "/placeholder.svg?height=600&width=400",
-        url: "https://example.com/movie3",
-        genre: "Action, Drama, History",
-        year: "2022",
-        rating: "8.8",
-        duration: "187 min",
-        quality: "4K UHD",
-        description:
-          "A fearless revolutionary and an officer in the British force, who once shared a deep bond, decide to join forces and chart out an inspirational path of freedom against the despotic rule.",
-        views: "3.2M",
-        cast: "N.T. Rama Rao Jr., Ram Charan, Ajay Devgn",
-        director: "S.S. Rajamouli",
-        trailer: "https://youtube.com/watch?v=trailer3",
-        language: "Hindi, Telugu, Tamil",
-        size: "2.5 GB",
-        isFeatured: true,
-        isTrending: true,
-        category: "Bollywood",
-      },
-      {
-        id: "4",
-        title: "The Batman",
-        thumbnail: "/placeholder.svg?height=600&width=400",
-        url: "https://example.com/movie4",
-        genre: "Action, Crime, Drama",
-        year: "2022",
-        rating: "7.8",
-        duration: "176 min",
-        quality: "4K UHD",
-        description:
-          "Batman ventures into Gotham City's underworld when a sadistic killer leaves behind a trail of cryptic clues. As the evidence begins to lead closer to home.",
-        views: "1.2M",
-        cast: "Robert Pattinson, Zoë Kravitz, Jeffrey Wright",
-        director: "Matt Reeves",
-        trailer: "https://youtube.com/watch?v=trailer4",
-        language: "English, Hindi",
-        size: "2.0 GB",
-        isFeatured: true,
-        isTrending: false,
-        category: "Hollywood",
-      },
-      {
-        id: "5",
-        title: "Pushpa: The Rise",
-        thumbnail: "/placeholder.svg?height=600&width=400",
-        url: "https://example.com/movie5",
-        genre: "Action, Crime, Drama",
-        year: "2021",
-        rating: "7.6",
-        duration: "179 min",
-        quality: "4K UHD",
-        description:
-          "Violence erupts between red sandalwood smugglers and the police charged with bringing down their organization in the Seshachalam forests of South India.",
-        views: "2.8M",
-        cast: "Allu Arjun, Fahadh Faasil, Rashmika Mandanna",
-        director: "Sukumar",
-        trailer: "https://youtube.com/watch?v=trailer5",
-        language: "Hindi, Telugu, Tamil",
-        size: "2.2 GB",
-        isFeatured: true,
-        isTrending: true,
-        category: "Bollywood",
-      },
-      {
-        id: "6",
-        title: "Top Gun: Maverick",
-        thumbnail: "/placeholder.svg?height=600&width=400",
-        url: "https://example.com/movie6",
-        genre: "Action, Drama",
-        year: "2022",
-        rating: "8.3",
-        duration: "130 min",
-        quality: "4K UHD",
-        description:
-          "After thirty years, Maverick is still pushing the envelope as a top naval aviator, but must confront ghosts of his past when he leads TOP GUN's elite graduates on a mission.",
-        views: "950K",
-        cast: "Tom Cruise, Miles Teller, Jennifer Connelly",
-        director: "Joseph Kosinski",
-        trailer: "https://youtube.com/watch?v=trailer6",
-        language: "English, Hindi",
-        size: "1.7 GB",
-        isFeatured: false,
-        isTrending: true,
-        category: "Hollywood",
-      },
-      {
-        id: "7",
-        title: "KGF Chapter 2",
-        thumbnail: "/placeholder.svg?height=600&width=400",
-        url: "https://example.com/movie7",
-        genre: "Action, Crime, Drama",
-        year: "2022",
-        rating: "8.4",
-        duration: "168 min",
-        quality: "4K UHD",
-        description:
-          "The blood-soaked land of Kolar Gold Fields (KGF) has a new overlord now - Rocky, whose name strikes fear in the heart of his foes.",
-        views: "4.1M",
-        cast: "Yash, Sanjay Dutt, Raveena Tandon",
-        director: "Prashanth Neel",
-        trailer: "https://youtube.com/watch?v=trailer7",
-        language: "Hindi, Kannada, Telugu",
-        size: "2.3 GB",
-        isFeatured: false,
-        isTrending: true,
-        category: "Bollywood",
-      },
-      {
-        id: "8",
-        title: "Doctor Strange 2",
-        thumbnail: "/placeholder.svg?height=600&width=400",
-        url: "https://example.com/movie8",
-        genre: "Action, Adventure, Fantasy",
-        year: "2022",
-        rating: "6.9",
-        duration: "126 min",
-        quality: "4K UHD",
-        description:
-          "Dr. Stephen Strange casts a forbidden spell that opens the doorway to the multiverse, including alternate versions of himself.",
-        views: "1.1M",
-        cast: "Benedict Cumberbatch, Elizabeth Olsen, Chiwetel Ejiofor",
-        director: "Sam Raimi",
-        trailer: "https://youtube.com/watch?v=trailer8",
-        language: "English, Hindi",
-        size: "1.9 GB",
-        isFeatured: false,
-        isTrending: false,
-        category: "Hollywood",
-      },
-    ]
-
-    // Load from localStorage or use sample data
-    const savedMovies = localStorage.getItem("smartsaathi-movies")
-    if (savedMovies) {
-      const loadedMovies = JSON.parse(savedMovies)
-      setMovies(loadedMovies)
-      setFeaturedMovies(loadedMovies.filter((movie: Movie) => movie.isFeatured))
-    } else {
-      setMovies(sampleMovies)
-      setFeaturedMovies(sampleMovies.filter((movie) => movie.isFeatured))
-      localStorage.setItem("smartsaathi-movies", JSON.stringify(sampleMovies))
-    }
+    if (!supabase) return // show empty UI when keys are missing
+    ;(async () => {
+      const { data, error } = await supabase.from("movies").select("*")
+      if (!error) {
+        setMovies(data as Movie[])
+        setFeaturedMovies(data.filter((m: Movie) => m.isFeatured))
+      } else {
+        console.error("Error fetching movies:", error)
+      }
+    })()
   }, [])
 
   useEffect(() => {

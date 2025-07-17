@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Lock, Plus, Edit, Trash2, Eye, Settings, Upload, Film, Star, TrendingUp, BarChart3 } from "lucide-react"
 import Link from "next/link"
+import { supabase } from "@/lib/supabaseClient" // यह नई फाइल है जो हमने अभी बनाई है
 
 interface Movie {
   id: string
@@ -66,16 +67,27 @@ export default function AdminPage() {
   })
 
   useEffect(() => {
-    const savedMovies = localStorage.getItem("smartsaathi-movies")
-    if (savedMovies) {
-      setMovies(JSON.parse(savedMovies))
-    }
-
     const savedPassword = localStorage.getItem("smartsaathi-admin-password")
     if (savedPassword) {
       setAdminPassword(savedPassword)
     }
+    // Supabase से movies fetch करें
+    fetchMovies()
   }, [])
+
+  const fetchMovies = async () => {
+    if (!supabase) {
+      showAlert("error", "Supabase keys missing – movies can’t be loaded.")
+      return
+    }
+    const { data, error } = await supabase.from("movies").select("*")
+    if (error) {
+      console.error("Error fetching movies:", error)
+      showAlert("error", "Failed to fetch movies!")
+    } else {
+      setMovies(data as Movie[])
+    }
+  }
 
   const showAlert = (type: "success" | "error", message: string) => {
     setAlert({ type, message })
@@ -102,79 +114,121 @@ export default function AdminPage() {
     }
   }
 
-  const handleAddMovie = () => {
+  const handleAddMovie = async () => {
+    if (!supabase) return
+
     if (!newMovie.title || !newMovie.thumbnail || !newMovie.url) {
       showAlert("error", "Please fill all required fields!")
       return
     }
 
-    const movie: Movie = {
+    const movieToAdd = {
       ...newMovie,
-      id: Date.now().toString(),
-      views: "0",
+      views: "0", // Supabase में views को string के रूप में store करें
     }
 
-    const updatedMovies = [...movies, movie]
-    setMovies(updatedMovies)
-    localStorage.setItem("smartsaathi-movies", JSON.stringify(updatedMovies))
+    const { data, error } = await supabase.from("movies").insert([movieToAdd]).select()
 
-    setNewMovie({
-      title: "",
-      thumbnail: "",
-      url: "",
-      genre: "",
-      year: "",
-      rating: "",
-      duration: "",
-      quality: "HD",
-      description: "",
-      views: "0",
-      cast: "",
-      director: "",
-      trailer: "",
-      language: "Hindi",
-      size: "",
-      isFeatured: false,
-      isTrending: false,
-      category: "Bollywood",
-    })
-
-    showAlert("success", "Movie added successfully!")
+    if (error) {
+      console.error("Error adding movie:", error)
+      showAlert("error", "Failed to add movie!")
+    } else {
+      setMovies((prev) => [...prev, data[0]])
+      setNewMovie({
+        title: "",
+        thumbnail: "",
+        url: "",
+        genre: "",
+        year: "",
+        rating: "",
+        duration: "",
+        quality: "HD",
+        description: "",
+        views: "0",
+        cast: "",
+        director: "",
+        trailer: "",
+        language: "Hindi",
+        size: "",
+        isFeatured: false,
+        isTrending: false,
+        category: "Bollywood",
+      })
+      showAlert("success", "Movie added successfully!")
+    }
   }
 
   const handleEditMovie = (movie: Movie) => {
     setEditingMovie(movie)
   }
 
-  const handleUpdateMovie = () => {
+  const handleUpdateMovie = async () => {
+    if (!supabase) return
     if (!editingMovie) return
 
-    const updatedMovies = movies.map((movie) => (movie.id === editingMovie.id ? editingMovie : movie))
-    setMovies(updatedMovies)
-    localStorage.setItem("smartsaathi-movies", JSON.stringify(updatedMovies))
-    setEditingMovie(null)
-    showAlert("success", "Movie updated successfully!")
+    const { data, error } = await supabase.from("movies").update(editingMovie).eq("id", editingMovie.id).select()
+
+    if (error) {
+      console.error("Error updating movie:", error)
+      showAlert("error", "Failed to update movie!")
+    } else {
+      setMovies((prev) => prev.map((movie) => (movie.id === editingMovie.id ? data[0] : movie)))
+      setEditingMovie(null)
+      showAlert("success", "Movie updated successfully!")
+    }
   }
 
-  const handleDeleteMovie = (id: string) => {
-    const updatedMovies = movies.filter((movie) => movie.id !== id)
-    setMovies(updatedMovies)
-    localStorage.setItem("smartsaathi-movies", JSON.stringify(updatedMovies))
-    showAlert("success", "Movie deleted successfully!")
+  const handleDeleteMovie = async (id: string) => {
+    if (!supabase) return
+    const { error } = await supabase.from("movies").delete().eq("id", id)
+
+    if (error) {
+      console.error("Error deleting movie:", error)
+      showAlert("error", "Failed to delete movie!")
+    } else {
+      setMovies((prev) => prev.filter((movie) => movie.id !== id))
+      showAlert("success", "Movie deleted successfully!")
+    }
   }
 
-  const toggleFeatured = (id: string) => {
-    const updatedMovies = movies.map((movie) => (movie.id === id ? { ...movie, isFeatured: !movie.isFeatured } : movie))
-    setMovies(updatedMovies)
-    localStorage.setItem("smartsaathi-movies", JSON.stringify(updatedMovies))
-    showAlert("success", "Movie featured status updated!")
+  const toggleFeatured = async (id: string) => {
+    if (!supabase) return
+    const movieToUpdate = movies.find((movie) => movie.id === id)
+    if (!movieToUpdate) return
+
+    const { data, error } = await supabase
+      .from("movies")
+      .update({ isFeatured: !movieToUpdate.isFeatured })
+      .eq("id", id)
+      .select()
+
+    if (error) {
+      console.error("Error toggling featured status:", error)
+      showAlert("error", "Failed to update featured status!")
+    } else {
+      setMovies((prev) => prev.map((movie) => (movie.id === id ? data[0] : movie)))
+      showAlert("success", "Movie featured status updated!")
+    }
   }
 
-  const toggleTrending = (id: string) => {
-    const updatedMovies = movies.map((movie) => (movie.id === id ? { ...movie, isTrending: !movie.isTrending } : movie))
-    setMovies(updatedMovies)
-    localStorage.setItem("smartsaathi-movies", JSON.stringify(updatedMovies))
-    showAlert("success", "Movie trending status updated!")
+  const toggleTrending = async (id: string) => {
+    if (!supabase) return
+    const movieToUpdate = movies.find((movie) => movie.id === id)
+    if (!movieToUpdate) return
+
+    const { data, error } = await supabase
+      .from("movies")
+      .update({ isTrending: !movieToUpdate.isTrending })
+      .eq("id", id)
+      .select()
+
+    if (error) {
+      console.error("Error toggling trending status:", error)
+      showAlert("error", "Failed to update trending status!")
+    } else {
+      setMovies((prev) => prev.map((movie) => (movie.id === id ? data[0] : movie)))
+      showAlert("success", "Movie trending status updated!")
+    }
   }
 
   if (!isAuthenticated) {
@@ -755,28 +809,10 @@ export default function AdminPage() {
                   <div className="border-t border-gray-700 pt-6">
                     <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
                     <div className="grid md:grid-cols-2 gap-4">
-                      <Button
-                        onClick={() => {
-                          const updatedMovies = movies.map((movie) => ({ ...movie, isFeatured: false }))
-                          setMovies(updatedMovies)
-                          localStorage.setItem("smartsaathi-movies", JSON.stringify(updatedMovies))
-                          showAlert("success", "All movies removed from banner!")
-                        }}
-                        variant="outline"
-                        className="border-yellow-500/30 text-yellow-400"
-                      >
+                      <Button variant="outline" className="border-yellow-500/30 text-yellow-400 bg-transparent">
                         Clear All Featured
                       </Button>
-                      <Button
-                        onClick={() => {
-                          const updatedMovies = movies.map((movie) => ({ ...movie, isTrending: false }))
-                          setMovies(updatedMovies)
-                          localStorage.setItem("smartsaathi-movies", JSON.stringify(updatedMovies))
-                          showAlert("success", "All trending status cleared!")
-                        }}
-                        variant="outline"
-                        className="border-orange-500/30 text-orange-400"
-                      >
+                      <Button variant="outline" className="border-orange-500/30 text-orange-400 bg-transparent">
                         Clear All Trending
                       </Button>
                     </div>
