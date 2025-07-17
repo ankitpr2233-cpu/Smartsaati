@@ -60,16 +60,16 @@ export default function HomePage() {
   const [filteredMovies, setFilteredMovies] = useState<Movie[]>([])
 
   useEffect(() => {
-    if (!supabase) return // show empty UI when keys are missing
-    ;(async () => {
+    const fetchMovies = async () => {
       const { data, error } = await supabase.from("movies").select("*")
-      if (!error) {
-        setMovies(data as Movie[])
-        setFeaturedMovies(data.filter((m: Movie) => m.isFeatured))
-      } else {
+      if (error) {
         console.error("Error fetching movies:", error)
+      } else {
+        setMovies(data as Movie[])
+        setFeaturedMovies(data.filter((movie: Movie) => movie.isFeatured))
       }
-    })()
+    }
+    fetchMovies()
   }, [])
 
   useEffect(() => {
